@@ -23,7 +23,6 @@ export default class MapManipulator {
     private areaBorder !: Rectangle;
 
     private turf = require("@turf/turf");
-    private extent = require("turf-extent");
 
     constructor() {
         let mapOptions : MapOptions = {
@@ -125,7 +124,6 @@ export default class MapManipulator {
     private clipLineStringsWithBbox(geojson: FeatureCollection, bounds: LatLngBounds): FeatureCollection {
         const clippedFeatures: Feature[] = [];
 
-        // Criar bbox no formato [minX, minY, maxX, maxY]
         const bbox: [number, number, number, number] = [
             bounds.getWest(),  // minX (longitude oeste)
             bounds.getSouth(), // minY (latitude sul)
@@ -138,10 +136,8 @@ export default class MapManipulator {
                 try {
                     const lineFeature = feature as Feature<LineString>;
 
-                    // Usar turf.bboxClip para clipar a linha dentro do bbox
                     const clipped = this.turf.bboxClip(lineFeature, bbox);
 
-                    // Verificar se a linha clippada tem coordenadas válidas
                     if (clipped && clipped.geometry.coordinates.length > 1) {
                         clippedFeatures.push({
                             ...feature,
@@ -151,7 +147,6 @@ export default class MapManipulator {
 
                 } catch (error) {
                     console.warn('Erro ao processar LineString com bboxClip:', error);
-                    // Fallback: verificar se a linha está completamente dentro dos bounds
                     const lineFeature = feature as Feature<LineString>;
                     if (this.isLineWithinBounds(lineFeature, bounds)) {
                         clippedFeatures.push(feature);
