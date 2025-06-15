@@ -1,10 +1,8 @@
 import {
-    Bounds,
     GeoJSON,
     geoJson,
     latLng,
     LatLngBounds,
-    latLngBounds,
     map,
     Map,
     MapOptions,
@@ -13,7 +11,7 @@ import {
     tileLayer,
     TileLayer
 } from "leaflet";
-import {Feature, FeatureCollection, GeoJsonObject, Geometry} from "geojson";
+import {Feature, FeatureCollection, Geometry, LineString} from "geojson";
 
 export default class MapManipulator {
 
@@ -97,16 +95,18 @@ export default class MapManipulator {
         }
     }
 
-    private initializeGeojsonLayer(geojson: GeoJsonObject, bounds: LatLngBounds) {
+    private initializeGeojsonLayer(geojson: FeatureCollection, bounds: LatLngBounds) {
+        const clippedGeojson = this.clipLineStringsWithBbox(geojson, bounds);
+
         if (this.geojsonLayer) this.geojsonLayer.removeFrom(this.map);
-        this.geojsonLayer = geoJson(geojson, {
+        this.geojsonLayer = geoJson(clippedGeojson, {
             filter(geoJsonFeature: Feature<Geometry, any>): boolean {
                 return geoJsonFeature.geometry.type === "LineString";
             },
             style: {
                 color: '#1457ff',
-                weight: 3,
-                opacity: 0.9,
+                weight: 4,
+                opacity: 0.75,
             }
         }).addTo(this.map);
 
@@ -122,5 +122,58 @@ export default class MapManipulator {
         this.map.fitBounds(bounds);
     }
 
+    private clipLineStringsWithBbox(geojson: FeatureCollection, bounds: LatLngBounds): FeatureCollection {
+        const clippedFeatures: Feature[] = [];
+
+        // Criar bbox no formato [minX, minY, maxX, maxY]
+        const bbox: [number, number, number, number] = [
+            bounds.getWest(),  // minX (longitude oeste)
+            bounds.getSouth(), // minY (latitude sul)
+            bounds.getEast(),  // maxX (longitude leste)
+            bounds.getNorth()  // maxY (latitude norte)
+        ];
+
+        const processFeature = (feature: Feature) => {
+            if (feature.geometry.type === "LineString") {
+                try {
+                    const lineFeature = feature as Feature<LineString>;
+
+                    // Usar turf.bboxClip para clipar a linha dentro do bbox
+                    const clipped = this.turf.bboxClip(lineFeature, bbox);
+
+                    // Verificar se a linha clippada tem coordenadas válidas
+                    if (clipped && clipped.geometry.coordinates.length > 1) {
+                        clippedFeatures.push({
+                            ...feature,
+                            geometry: clipped.geometry
+                        });
+                    }
+
+                } catch (error) {
+                    console.warn('Erro ao processar LineString com bboxClip:', error);
+                    // Fallback: verificar se a linha está completamente dentro dos bounds
+                    const lineFeature = feature as Feature<LineString>;
+                    if (this.isLineWithinBounds(lineFeature, bounds)) {
+                        clippedFeatures.push(feature);
+                    }
+                }
+            }
+        };
+
+        geojson.features.forEach(processFeature);
+
+        return {
+            type: 'FeatureCollection',
+            features: clippedFeatures
+        };
+    }
+
+    private isLineWithinBounds(lineFeature: Feature<LineString>, bounds: LatLngBounds): boolean {
+        return lineFeature.geometry.coordinates.every(coord => {
+            const [lng, lat] = coord;
+            return lng >= bounds.getWest() && lng <= bounds.getEast() &&
+                lat >= bounds.getSouth() && lat <= bounds.getNorth();
+        });
+    }
 
 }
