@@ -1,5 +1,19 @@
-import {map, tileLayer, MapOptions, Map, TileLayer, latLng, GeoJSON, geoJson} from "leaflet";
-import {Feature, GeoJsonObject, Geometry} from "geojson";
+import {
+    Bounds,
+    GeoJSON,
+    geoJson,
+    latLng,
+    LatLngBounds,
+    latLngBounds,
+    map,
+    Map,
+    MapOptions,
+    rectangle,
+    Rectangle,
+    tileLayer,
+    TileLayer
+} from "leaflet";
+import {Feature, FeatureCollection, GeoJsonObject, Geometry} from "geojson";
 
 export default class MapManipulator {
 
@@ -8,13 +22,17 @@ export default class MapManipulator {
     private map : Map;
     private tileLayer !: TileLayer;
     private geojsonLayer !: GeoJSON<{}, Geometry>;
+    private areaBorder !: Rectangle;
+
+    private turf = require("@turf/turf");
+    private extent = require("turf-extent");
 
     constructor() {
         let mapOptions : MapOptions = {
             center: latLng(-16.67,  -49.25), // Centralizado em Goiânia
             zoom: 12,
             minZoom: 5,
-            maxZoom: 20,
+            maxZoom: 18,
         }
         this.map = map('map', mapOptions)
         this.setTileLayer();
@@ -32,21 +50,12 @@ export default class MapManipulator {
 
         const reader = new FileReader();
         reader.onload = () => {
-            const osmData = new DOMParser().parseFromString(reader.result as string, "text/xml");
+            const osmData : Document = new DOMParser().parseFromString(reader.result as string, "text/xml");
             const osmtogeojson = require('osmtogeojson');
-            let geojson : GeoJsonObject = osmtogeojson(osmData);
+            let geojson : FeatureCollection = osmtogeojson(osmData);
 
-            this.geojsonLayer = geoJson(geojson, {
-                filter(geoJsonFeature: Feature<Geometry, any>): boolean {
-                    return geoJsonFeature.geometry.type === "LineString";
-                },
-                style: {
-                    color: '#1457ff',
-                    weight: 3,
-                    opacity: 0.9
-                }
-            }).addTo(this.map);
-            this.map.fitBounds(this.geojsonLayer.getBounds());
+            let osmBounds : LatLngBounds = this.getOsmBounds(osmData)
+            this.initializeGeojsonLayer(geojson, osmBounds);
         }
 
         reader.onerror = (e) => {
@@ -54,6 +63,26 @@ export default class MapManipulator {
         };
 
         reader.readAsText(file);
+    }
+
+    private getOsmBounds(osmData: Document) : LatLngBounds {
+        try{
+            const boundsElement = osmData.querySelector("bounds");
+
+            if (boundsElement) {
+                const minlat = parseFloat(<string>boundsElement.getAttribute("minlat"));
+                const minlon = parseFloat(<string>boundsElement.getAttribute("minlon"));
+                const maxlat = parseFloat(<string>boundsElement.getAttribute("maxlat"));
+                const maxlon = parseFloat(<string>boundsElement.getAttribute("maxlon"));
+
+                return new LatLngBounds([minlat, minlon], [maxlat, maxlon]);
+            } else {
+                throw new Error("Bounds element not found in OSM file");
+            }
+        }catch(e){
+            alert("Erro ao carregar a área do arquivo OSM");
+            throw e;
+        }
     }
 
     public hideGeoJsonLayer() : void {
@@ -67,4 +96,31 @@ export default class MapManipulator {
             this.geojsonLayer.addTo(this.map);
         }
     }
+
+    private initializeGeojsonLayer(geojson: GeoJsonObject, bounds: LatLngBounds) {
+        if (this.geojsonLayer) this.geojsonLayer.removeFrom(this.map);
+        this.geojsonLayer = geoJson(geojson, {
+            filter(geoJsonFeature: Feature<Geometry, any>): boolean {
+                return geoJsonFeature.geometry.type === "LineString";
+            },
+            style: {
+                color: '#1457ff',
+                weight: 3,
+                opacity: 0.9,
+            }
+        }).addTo(this.map);
+
+        if (this.areaBorder) this.areaBorder.removeFrom(this.map);
+        this.areaBorder = rectangle(bounds, {
+            color: 'red',
+            weight: 2,
+            dashArray: '8, 4',
+            fill: false,
+            interactive: false,
+        }).addTo(this.map);
+
+        this.map.fitBounds(bounds);
+    }
+
+
 }
