@@ -3,11 +3,14 @@ import {
     geoJson,
     latLng,
     LatLngBounds,
+    LayerGroup,
     map,
     Map,
     MapOptions,
+    PathOptions,
     rectangle,
     Rectangle,
+    StyleFunction,
     tileLayer,
     TileLayer
 } from "leaflet";
@@ -17,10 +20,12 @@ export default class MapManipulator {
 
     private readonly defaultTileLayerProvider : string = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     private readonly cartoDarkTileLayerProvider : string = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-    private map : Map;
+    private readonly map : Map;
+    private layerGroup : LayerGroup;
     private tileLayer !: TileLayer;
     private geojsonLayer !: GeoJSON<{}, Geometry>;
     private areaBorder !: Rectangle;
+    private isGeoJSONLayerVisible : boolean = false;
 
     private turf = require("@turf/turf");
 
@@ -33,6 +38,8 @@ export default class MapManipulator {
         }
         this.map = map('map', mapOptions)
         this.setTileLayer();
+        this.layerGroup = new LayerGroup();
+        this.layerGroup.addTo(this.map)
     }
 
     private setTileLayer(tileLayerProvider : string = this.defaultTileLayerProvider) {
@@ -84,13 +91,15 @@ export default class MapManipulator {
 
     public hideGeoJsonLayer() : void {
         if (this.geojsonLayer) {
-            this.geojsonLayer.removeFrom(this.map);
+            this.isGeoJSONLayerVisible = false;
+            this.geojsonLayer.setStyle(this.getGeojsonStyle());
         }
     }
 
     public showGeoJsonLayer () : void {
         if (this.geojsonLayer) {
-            this.geojsonLayer.addTo(this.map);
+            this.isGeoJSONLayerVisible = true;
+            this.geojsonLayer.setStyle(this.getGeojsonStyle());
         }
     }
 
@@ -99,15 +108,9 @@ export default class MapManipulator {
 
         if (this.geojsonLayer) this.geojsonLayer.removeFrom(this.map);
         this.geojsonLayer = geoJson(clippedGeojson, {
-            filter(geoJsonFeature: Feature<Geometry, any>): boolean {
-                return geoJsonFeature.geometry.type === "LineString";
-            },
-            style: {
-                color: '#1457ff',
-                weight: 4,
-                opacity: 0.75,
-            }
-        }).addTo(this.map);
+            style: this.getGeojsonStyle()
+        });
+        this.layerGroup.addLayer(this.geojsonLayer);
 
         if (this.areaBorder) this.areaBorder.removeFrom(this.map);
         this.areaBorder = rectangle(bounds, {
@@ -116,9 +119,19 @@ export default class MapManipulator {
             dashArray: '8, 4',
             fill: false,
             interactive: false,
-        }).addTo(this.map);
+        });
+        this.layerGroup.addLayer(this.areaBorder);
+        this.areaBorder.bringToFront();
 
         this.map.fitBounds(bounds);
+    }
+
+    private getGeojsonStyle() :  PathOptions | StyleFunction{
+        return {
+            color: '#1457ff',
+            weight: 3,
+            opacity: this.isGeoJSONLayerVisible ? 1 : 0
+        }
     }
 
     private clipLineStringsWithBbox(geojson: FeatureCollection, bounds: LatLngBounds): FeatureCollection {
