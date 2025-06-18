@@ -12,8 +12,10 @@ import {
     Rectangle,
     StyleFunction,
     tileLayer,
-    TileLayer
+    TileLayer,
+    Routing
 } from "leaflet";
+import "leaflet-routing-machine";
 import {Feature, FeatureCollection, Geometry, LineString} from "geojson";
 
 export default class MapManipulator {
@@ -122,7 +124,7 @@ export default class MapManipulator {
         });
         this.layerGroup.addLayer(this.areaBorder);
         this.areaBorder.bringToFront();
-
+        this.addRouting();
         this.map.fitBounds(bounds);
     }
 
@@ -182,6 +184,16 @@ export default class MapManipulator {
             return lng >= bounds.getWest() && lng <= bounds.getEast() &&
                 lat >= bounds.getSouth() && lat <= bounds.getNorth();
         });
+    }
+
+    private addRouting(){
+        Routing.control({
+            waypoints: [
+                latLng(-16.678792, -49.249805),
+                latLng(-16.688735, -49.259037)
+            ],
+            autoRoute: true,
+        }).addTo(this.map);
     }
 
 }
