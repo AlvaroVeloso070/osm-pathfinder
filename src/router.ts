@@ -5,8 +5,7 @@ import {HighwaySpeeds, Vertices} from "./types";
 import PathFinder from "./pathFinder";
 import * as turf from "@turf/turf"
 
-export class Router implements Routing.IRouter  {
-
+export class Router implements Routing.IRouter {
     private readonly highwaySpeeds : HighwaySpeeds;
     private pathFinder : PathFinder<LineString>;
     private unknowns: Record<string, boolean> = {};
@@ -17,17 +16,18 @@ export class Router implements Routing.IRouter  {
         toPoint: function (wp : Routing.Waypoint) {
             let c = wp.latLng;
             return {
-                type: 'Feature',
+                type: 'Feature' as const,
                 geometry: {
-                    type: 'Point',
+                    type: 'Point' as const,
                     coordinates: [c.lng, c.lat]
-                }
+                },
+                properties: {}
             };
         },
 
-        toLatLng: function (p : Feature<Point>) {
+        toLatLng: function (p : Feature<Point> | number[]) {
             if (Array.isArray(p)) {
-                return latLng(p[0],p[1]);
+                return latLng(p[1], p[0]); // Note: lat, lng order
             }
             return latLng(p.geometry.coordinates[1], p.geometry.coordinates[0]);
         }
@@ -100,72 +100,101 @@ export class Router implements Routing.IRouter  {
 
     route(
         waypoints: Routing.Waypoint[],
-        callback: (error?: Routing.IError, routes?: Routing.IRoute[]) => any,
+        callback: (error?: Routing.IError, routes?: Routing.IRoute[]) => void,
         context?: any
-    ): void {
-        const actualWaypoints  = waypoints.map(
-            // @ts-ignore
-            (wp) => turf.nearestPoint(this.util.toPoint(wp), this.points)
-        );
+    ): Routing.IRouter {
+        try {
+            const actualWaypoints = waypoints.map(
+                (wp) => turf.nearestPoint(this.util.toPoint(wp), this.points)
+            );
 
-        const legs = actualWaypoints
-            .map((wp, i, wps) => {
-                if (i > 0) {
-                    return this.pathFinder.findPath(
-                        turf.point(wps[i - 1].geometry.coordinates), turf.point(wp.geometry.coordinates)
-                    );
-                }
-                return [];
-            })
-            .slice(1);
+            const legs = actualWaypoints
+                .map((wp, i, wps) => {
+                    if (i > 0) {
+                        return this.pathFinder.findPath(
+                            turf.point(wps[i - 1].geometry.coordinates),
+                            turf.point(wp.geometry.coordinates)
+                        );
+                    }
+                    return null;
+                })
+                .slice(1);
 
-        if (legs.some(l => !l)) {
-            return callback.call(context || this, {
-                status: 1,
-                message: "Can't find route.",
-            });
-        }
+            // Verificar se alguma perna da rota falhou
+            if (legs.some(l => !l || !l.path || l.path.length === 0)) {
+                const error: Routing.IError = {
+                    status: 1,
+                    message: "Can't find route."
+                };
+                callback.call(context || this, error);
+                return this;
+            }
 
-        const totalTime = legs.reduce((sum : number, l : any) => sum + l.weight, 0);
+            const totalTime = legs.reduce((sum: number, l: any) => sum + (l ? l.weight : 0), 0);
 
-        const totalDistance = legs.reduce((sum : number, l : any) => {
-            const legDistance = l.path.reduce((d : any, c : any, i : any, cs : any) => {
-                if (i > 0) {
-                    return d + turf.distance(
-                        turf.point(cs[i - 1]),
-                        turf.point(c)
-                    ) * 1000;
-                }
-                return d;
+            const totalDistance = legs.reduce((sum: number, l: any) => {
+                if (!l || !l.path) return sum;
+
+                const legDistance = l.path.reduce((d: number, c: any, i: number, cs: any[]) => {
+                    if (i > 0) {
+                        return d + turf.distance(
+                            turf.point(cs[i - 1]),
+                            turf.point(c)
+                        ) * 1000;
+                    }
+                    return d;
+                }, 0);
+                return sum + legDistance;
             }, 0);
-            return sum + legDistance;
-        }, 0);
 
-        console.log(legs.flatMap((l: any) => l.path.map((coord : any) => this.util.toLatLng(coord))));
-        // @ts-ignore
-        callback.call(context, null, [
-            {
+            // Criar coordenadas da rota
+            const routeCoordinates = legs.flatMap((l: any) =>
+                l && l.path ? l.path.map((coord: any) => this.util.toLatLng(coord)) : []
+            );
+
+            // Criar waypoints corretos para o LRM
+            const routeWaypoints = waypoints.map((wp, index) => ({
+                latLng: wp.latLng,
+                name: wp.name || `Waypoint ${index + 1}`,
+                options: wp.options || {}
+            }));
+
+            const route = {
                 name: "Rota encontrada",
-                waypoints: actualWaypoints.map((p : any) => ({
-                    latLng: this.util.toLatLng(p)
-                })),
-                inputWaypoints: waypoints,
+                waypoints: routeWaypoints.map((wp) => wp.latLng),
+                inputWaypoints: routeWaypoints,
+                actualWaypoints: actualWaypoints,
                 summary: {
-                    totalDistance: totalDistance,
-                    totalTime: totalTime,
+                    totalDistance: Math.round(totalDistance),
+                    totalTime: Math.round(totalTime),
                 },
-                coordinates: legs.flatMap((l: any) => l.path.map((coord : any) => this.util.toLatLng(coord))),
+                coordinates: routeCoordinates,
                 instructions: [
                     {
                         type: 'Straight',
                         text: 'Siga até o destino',
-                        distance: totalDistance,
-                        time: totalTime,
-                        index: 0
+                        distance: Math.round(totalDistance),
+                        time: Math.round(totalTime),
+                        index: 0,
+                        direction: 'Straight'
                     }
-                ]
-            },
-        ]);
-    }
+                ],
+            };
 
+            // Chamar callback com sucesso
+            setTimeout(() => {
+                // @ts-ignore
+                callback.call(context || this, undefined, [route]);
+            }, 0);
+
+        } catch (error) {
+            const routingError: Routing.IError = {
+                status: 500,
+                message: error instanceof Error ? error.message : "Unknown error occurred"
+            };
+            callback.call(context || this, routingError);
+        }
+
+        return this;
+    }
 }
