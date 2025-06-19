@@ -10,13 +10,17 @@ import {
     PathOptions,
     rectangle,
     Rectangle,
+    Routing,
     StyleFunction,
     tileLayer,
-    TileLayer,
-    Routing
+    TileLayer
 } from "leaflet";
 import "leaflet-routing-machine";
-import {Feature, FeatureCollection, Geometry, LineString} from "geojson";
+import {Feature, FeatureCollection, GeoJsonProperties, Geometry, LineString} from "geojson";
+import {GeoJSONInfo} from "./types";
+import * as turf from "@turf/turf";
+import osmtogeojson from "osmtogeojson";
+import {Router} from "./router";
 
 export default class MapManipulator {
 
@@ -25,11 +29,12 @@ export default class MapManipulator {
     private readonly map : Map;
     private layerGroup : LayerGroup;
     private tileLayer !: TileLayer;
+    private clippedGeojson !: FeatureCollection<LineString, GeoJsonProperties>;
     private geojsonLayer !: GeoJSON<{}, Geometry>;
+    private geojsonInfo !: GeoJSONInfo;
     private areaBorder !: Rectangle;
     private isGeoJSONLayerVisible : boolean = false;
-
-    private turf = require("@turf/turf");
+    private router !: Router;
 
     constructor() {
         let mapOptions : MapOptions = {
@@ -57,7 +62,6 @@ export default class MapManipulator {
         const reader = new FileReader();
         reader.onload = () => {
             const osmData : Document = new DOMParser().parseFromString(reader.result as string, "text/xml");
-            const osmtogeojson = require('osmtogeojson');
             let geojson : FeatureCollection = osmtogeojson(osmData);
 
             let osmBounds : LatLngBounds = this.getOsmBounds(osmData)
@@ -106,10 +110,10 @@ export default class MapManipulator {
     }
 
     private initializeGeojsonLayer(geojson: FeatureCollection, bounds: LatLngBounds) {
-        const clippedGeojson = this.clipLineStringsWithBbox(geojson, bounds);
+        this.clippedGeojson = this.clipLineStringsWithBbox(geojson, bounds);
 
         if (this.geojsonLayer) this.geojsonLayer.removeFrom(this.map);
-        this.geojsonLayer = geoJson(clippedGeojson, {
+        this.geojsonLayer = geoJson(this.clippedGeojson, {
             style: this.getGeojsonStyle()
         });
         this.layerGroup.addLayer(this.geojsonLayer);
@@ -136,7 +140,7 @@ export default class MapManipulator {
         }
     }
 
-    private clipLineStringsWithBbox(geojson: FeatureCollection, bounds: LatLngBounds): FeatureCollection {
+    private clipLineStringsWithBbox(geojson: FeatureCollection, bounds: LatLngBounds): FeatureCollection<LineString, GeoJsonProperties> {
         const clippedFeatures: Feature[] = [];
 
         const bbox: [number, number, number, number] = [
@@ -151,7 +155,7 @@ export default class MapManipulator {
                 try {
                     const lineFeature = feature as Feature<LineString>;
 
-                    const clipped = this.turf.bboxClip(lineFeature, bbox);
+                    const clipped = turf.bboxClip(lineFeature, bbox);
 
                     if (clipped && clipped.geometry.coordinates.length > 1) {
                         clippedFeatures.push({
@@ -175,7 +179,7 @@ export default class MapManipulator {
         return {
             type: 'FeatureCollection',
             features: clippedFeatures
-        };
+        } as FeatureCollection<LineString, GeoJsonProperties>;
     }
 
     private isLineWithinBounds(lineFeature: Feature<LineString>, bounds: LatLngBounds): boolean {
@@ -187,12 +191,15 @@ export default class MapManipulator {
     }
 
     private addRouting(){
+        this.router = new Router(this.clippedGeojson)
         Routing.control({
             waypoints: [
                 latLng(-16.678792, -49.249805),
                 latLng(-16.688735, -49.259037)
             ],
+            router: this.router,
             autoRoute: true,
+            routeDragInterval: 100,
         }).addTo(this.map);
     }
 
