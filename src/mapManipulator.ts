@@ -247,8 +247,17 @@ export default class MapManipulator {
     }
 
     private addRoutingWaypoint(waypoint : LatLng){
-        this.routeWaypoints.push(waypoint);
-        this.routingControl.setWaypoints(this.routeWaypoints);
+        if (this.routingControl){
+            this.routeWaypoints.push(waypoint);
+            this.routingControl.setWaypoints(this.routeWaypoints);
+        }
+    }
+
+    clearRoutingWaypoints(){
+        if (this.routingControl) {
+            this.routeWaypoints = [];
+            this.routingControl.setWaypoints(this.routeWaypoints);
+        }
     }
 
 }

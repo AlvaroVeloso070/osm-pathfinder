@@ -6,6 +6,7 @@ fileInput.addEventListener('change', handleFileUpload);
 
 document.getElementById('hide-geojson')?.addEventListener('click', hideGeoJsonLayer);
 document.getElementById('show-geojson')?.addEventListener('click', showGeoJsonLayer);
+document.getElementById('remove-markers')?.addEventListener('click', removeAllMarkers);
 
 function handleFileUpload(event: Event) {
     const target = event.target as HTMLInputElement;
@@ -26,4 +27,8 @@ function hideGeoJsonLayer () : void {
 
 function showGeoJsonLayer () : void {
     mapManipulator.showGeoJsonLayer();
+}
+
+function removeAllMarkers () : void {
+    mapManipulator.clearRoutingWaypoints();
 }
