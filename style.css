@@ -4,3 +4,109 @@
     margin-top: 1.5rem;
     background: #000;
 }
+
+.waypoint-marker {
+    background: none !important;
+    border: none !important;
+}
+
+.waypoint-marker .marker-text {
+    position: relative;
+    display: block;
+    width: 25px;
+    height: 25px;
+    color: white;
+    font-weight: bold;
+    font-size: 13px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+
+    /* Forma de gota invertida usando CSS */
+    background-color: #3388ff;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid white;
+
+    /* Sombra projetada mais realista */
+    box-shadow:
+            0 4px 8px rgba(0,0,0,0.25),
+            0 2px 4px rgba(0,0,0,0.3),
+            0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* Rotacionar o número de volta para ficar na posição correta */
+.waypoint-marker .marker-text::before {
+    content: attr(data-number);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(45deg);
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1;
+    text-align: center;
+}
+
+.start-marker .marker-text {
+    background-color: #28a745; /* Verde para início */
+}
+
+.end-marker .marker-text {
+    background-color: #dc3545; /* Vermelho para fim */
+}
+
+.intermediate-marker .marker-text {
+    background-color: #3388ff; /* Azul para pontos intermediários */
+}
+
+.waypoint-marker:hover .marker-text {
+    transform: rotate(-45deg) scale(1.15);
+    transition: all 0.2s ease;
+    box-shadow:
+            0 6px 12px rgba(0,0,0,0.3),
+            0 3px 6px rgba(0,0,0,0.4),
+            0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* Versão melhorada usando clip-path para forma mais precisa */
+.waypoint-marker.teardrop-style .marker-text {
+    width: 25px;
+    height: 35px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    transform: none;
+    position: relative;
+    overflow: visible;
+}
+
+.waypoint-marker.teardrop-style .marker-text::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 10px solid;
+    border-top-color: inherit;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+}
+
+.waypoint-marker.teardrop-style .marker-text::before {
+    transform: none;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    height: auto;
+    padding: 0;
+}
+
+.waypoint-marker.teardrop-style:hover .marker-text {
+    transform: scale(1.15);
+}

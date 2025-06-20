@@ -1,12 +1,15 @@
 import {
+    divIcon,
     GeoJSON,
     geoJson,
+    LatLng,
     latLng,
     LatLngBounds,
     LayerGroup,
     map,
     Map,
     MapOptions,
+    marker,
     PathOptions,
     rectangle,
     Rectangle,
@@ -35,6 +38,8 @@ export default class MapManipulator {
     private areaBorder !: Rectangle;
     private isGeoJSONLayerVisible : boolean = false;
     private router !: Router;
+    private routingControl !: Routing.Control;
+    private routeWaypoints : LatLng[] = [];
 
     constructor() {
         let mapOptions : MapOptions = {
@@ -129,7 +134,18 @@ export default class MapManipulator {
         this.layerGroup.addLayer(this.areaBorder);
         this.areaBorder.bringToFront();
         this.addRouting();
+        this.setupMapClickHandler(bounds);
         this.map.fitBounds(bounds);
+    }
+
+    private setupMapClickHandler(bounds: LatLngBounds) {
+        this.map.on('click', (e) => {
+            const clickedPoint = e.latlng;
+
+            if (bounds.contains(clickedPoint)) {
+                this.addRoutingWaypoint(clickedPoint);
+            }
+        });
     }
 
     private getGeojsonStyle() :  PathOptions | StyleFunction{
@@ -192,15 +208,34 @@ export default class MapManipulator {
 
     private addRouting(){
         this.router = new Router(this.clippedGeojson)
-        Routing.control({
-            waypoints: [
-                latLng(-16.678792, -49.249805),
-                latLng(-16.688735, -49.259037)
-            ],
+        this.routingControl = Routing.control({
             router: this.router,
             autoRoute: true,
             routeDragInterval: 100,
+            // @ts-ignore
+            createMarker: function(i: number, waypoint: Routing.Waypoint, n: number) {
+                let markerClass = 'waypoint-marker';
+                if (i === 0) markerClass += ' start-marker';
+                else if (i === n - 1) markerClass += ' end-marker';
+                else markerClass += ' intermediate-marker';
+
+                return marker(waypoint.latLng, {
+                    draggable: true,
+                    icon: divIcon({
+                        className: markerClass,
+                        html: `<span class="marker-text" data-number="${i + 1}"></span>`,
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34]
+                    })
+                });
+            }
         }).addTo(this.map);
+    }
+
+    private addRoutingWaypoint(waypoint : LatLng){
+        this.routeWaypoints.push(waypoint);
+        this.routingControl.setWaypoints(this.routeWaypoints);
     }
 
 }
