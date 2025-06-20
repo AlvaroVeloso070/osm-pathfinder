@@ -127,7 +127,20 @@
         </div>
     </div>
     
-    
+    <!-- Toast de notificação -->
+    <div id="toast-notification" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 border border-gray-600 rounded-lg shadow-lg px-4 py-3 flex items-center gap-x-3 z-[2000] opacity-0 translate-y-2 pointer-events-none transition-all duration-300">
+        <svg class="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div class="text-white text-sm font-medium" id="toast-message">Não foi possível encontrar uma rota</div>
+        <button id="toast-close" class="text-gray-400 hover:text-white ml-auto">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+
+
     <script src="dist/main.js"></script>
 </body>
 </html>

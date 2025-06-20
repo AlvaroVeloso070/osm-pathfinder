@@ -1,13 +1,7 @@
-import { latLng, Routing } from "leaflet";
+import {latLng, Routing} from "leaflet";
 import "leaflet-routing-machine";
-import {
-  Feature,
-  FeatureCollection,
-  GeoJsonProperties,
-  LineString,
-  Point,
-} from "geojson";
-import { HighwaySpeeds, Vertices } from "./types";
+import {Feature, FeatureCollection, GeoJsonProperties, LineString, Point,} from "geojson";
+import {HighwaySpeeds, Vertices} from "./types";
 import PathFinder from "./pathFinder";
 import * as turf from "@turf/turf";
 
@@ -110,62 +104,145 @@ export class Router implements Routing.IRouter {
   };
 
   route(
-    waypoints: Routing.Waypoint[],
-    callback: (error?: Routing.IError, routes?: Routing.IRoute[]) => void,
-    context?: any
+      waypoints: Routing.Waypoint[],
+      callback: (error?: Routing.IError, routes?: Routing.IRoute[]) => void,
+      context?: any
   ): Routing.IRouter {
     try {
-      const actualWaypoints = waypoints.map((wp) =>
-        turf.nearestPoint(this.util.toPoint(wp), this.points)
-      );
+      // Função para encontrar múltiplos pontos próximos
+      const findNearestPoints = (point: any, maxAttempts: number = 5): any[] => {
+        const distances = this.points.features.map((feature, index) => ({
+          feature,
+          index,
+          distance: turf.distance(point, feature)
+        }));
 
-      const legs = actualWaypoints
-        .map((wp, i, wps) => {
-          if (i > 0) {
-            return this.pathFinder.findPath(
-              turf.point(wps[i - 1].geometry.coordinates),
-              turf.point(wp.geometry.coordinates)
-            );
+        // Ordenar por distância e pegar os N mais próximos
+        distances.sort((a, b) => a.distance - b.distance);
+        return distances.slice(0, maxAttempts).map(d => d.feature);
+      };
+
+      // Função para tentar encontrar waypoints válidos
+      const findValidWaypoints = (): any[] => {
+        const results = [];
+
+        for (const wp of waypoints) {
+          const wpPoint = this.util.toPoint(wp);
+          const nearestPoints = findNearestPoints(wpPoint);
+
+          // Para cada waypoint, vamos armazenar os candidatos
+          results.push({
+            original: wp,
+            candidates: nearestPoints,
+            selected: null
+          });
+        }
+
+        return results;
+      };
+
+      // Função para testar combinações de waypoints
+      const testWaypointCombination = (waypointCandidates: any[], combination: number[]): any[] | null => {
+        const selectedWaypoints = combination.map((candidateIndex, wpIndex) =>
+            waypointCandidates[wpIndex].candidates[candidateIndex]
+        );
+
+        // Testar se todos os caminhos são válidos
+        const legs = [];
+        for (let i = 1; i < selectedWaypoints.length; i++) {
+          const path = this.pathFinder.findPath(
+              turf.point(selectedWaypoints[i - 1].geometry.coordinates),
+              turf.point(selectedWaypoints[i].geometry.coordinates)
+          );
+
+          if (!path || !path.path || path.path.length === 0) {
+            return null; // Esta combinação não funciona
           }
-          return null;
-        })
-        .slice(1);
 
-      // Verificar se alguma perna da rota falhou
-      if (legs.some((l) => !l || !l.path || l.path.length === 0)) {
+          legs.push(path);
+        }
+
+        // @ts-ignore
+        return { selectedWaypoints, legs };
+      };
+
+      // Função para gerar todas as combinações possíveis
+      const generateCombinations = (waypointCandidates: any[]): number[][] => {
+        const combinations = [];
+        const maxCandidates = Math.max(...waypointCandidates.map(wc => wc.candidates.length));
+        const totalCombinations = Math.min(50, Math.pow(maxCandidates, waypointCandidates.length)); // Limitar tentativas
+
+        for (let i = 0; i < totalCombinations; i++) {
+          const combination = [];
+          let temp = i;
+
+          for (let j = 0; j < waypointCandidates.length; j++) {
+            const candidateCount = waypointCandidates[j].candidates.length;
+            combination.push(temp % candidateCount);
+            temp = Math.floor(temp / candidateCount);
+          }
+
+          combinations.push(combination);
+        }
+
+        return combinations;
+      };
+
+      // Obter candidatos para cada waypoint
+      const waypointCandidates = findValidWaypoints();
+
+      // Gerar e testar combinações
+      const combinations = generateCombinations(waypointCandidates);
+      let validResult = null;
+
+      // Testar combinações priorizando as que usam os pontos mais próximos
+      for (const combination of combinations) {
+        const result = testWaypointCombination(waypointCandidates, combination);
+        if (result) {
+          validResult = result;
+          break;
+        }
+      }
+
+      // Se não encontrou nenhuma combinação válida
+      if (!validResult) {
         const error: Routing.IError = {
           status: 1,
-          message: "Can't find route.",
+          message: "Can't find route with any nearby points.",
         };
+        showToast("Não foi possível encontrar uma rota para os pontos fornecidos, mesmo testando pontos próximos.");
         callback.call(context || this, error);
         return this;
       }
 
+      // @ts-ignore
+      const { selectedWaypoints: actualWaypoints, legs } = validResult;
+
       const totalTime = legs.reduce(
-        (sum: number, l: any) => sum + (l ? l.weight : 0),
-        0
+          (sum: number, l: any) => sum + (l ? l.weight : 0),
+          0
       );
 
       const totalDistance = legs.reduce((sum: number, l: any) => {
         if (!l || !l.path) return sum;
 
         const legDistance = l.path.reduce(
-          (d: number, c: any, i: number, cs: any[]) => {
-            if (i > 0) {
-              return (
-                d + turf.distance(turf.point(cs[i - 1]), turf.point(c)) * 1000
-              );
-            }
-            return d;
-          },
-          0
+            (d: number, c: any, i: number, cs: any[]) => {
+              if (i > 0) {
+                return (
+                    d + turf.distance(turf.point(cs[i - 1]), turf.point(c)) * 1000
+                );
+              }
+              return d;
+            },
+            0
         );
         return sum + legDistance;
       }, 0);
 
       // Criar coordenadas da rota
       const routeCoordinates = legs.flatMap((l: any) =>
-        l && l.path ? l.path.map((coord: any) => this.util.toLatLng(coord)) : []
+          l && l.path ? l.path.map((coord: any) => this.util.toLatLng(coord)) : []
       );
 
       // Criar waypoints corretos para o LRM
@@ -197,6 +274,9 @@ export class Router implements Routing.IRouter {
         ],
       };
 
+      // Log para debug - mostra quais pontos foram selecionados
+      console.log("Pontos selecionados para roteamento:", actualWaypoints.map((wp : any) => wp.geometry.coordinates));
+
       // Chamar callback com sucesso
       setTimeout(() => {
         // @ts-ignore
@@ -206,7 +286,7 @@ export class Router implements Routing.IRouter {
       const routingError: Routing.IError = {
         status: 500,
         message:
-          error instanceof Error ? error.message : "Unknown error occurred",
+            error instanceof Error ? error.message : "Unknown error occurred",
       };
       callback.call(context || this, routingError);
     }
@@ -225,4 +305,53 @@ export class Router implements Routing.IRouter {
   updateHighwaySpeed(type: keyof HighwaySpeeds, speed: number): void {
     this.highwaySpeeds[type] = speed;
   }
+}
+
+// Função para mostrar o toast de notificação
+function showToast(
+    message: string = "Não foi possível encontrar uma rota",
+    duration: number = 5000
+): void {
+  const toast = document.getElementById("toast-notification");
+  const toastMessage = document.getElementById("toast-message");
+  const toastClose = document.getElementById("toast-close");
+
+  if (!toast || !toastMessage) return;
+
+  // Define a mensagem
+  if (toastMessage) {
+    toastMessage.textContent = message;
+  }
+
+  // Mostra o toast com animação
+  setTimeout(() => {
+    toast.classList.add("opacity-100");
+    toast.classList.remove("opacity-0", "translate-y-2", "pointer-events-none");
+  }, 10);
+
+  // Configura o botão de fechar
+  if (toastClose) {
+    toastClose.onclick = () => hideToast();
+  }
+
+  // Esconde automaticamente após o tempo definido
+  const timeoutId = setTimeout(() => hideToast(), duration);
+
+  // Armazena o ID do timeout no elemento para poder cancelá-lo se necessário
+  (toast as any)._timeoutId = timeoutId;
+}
+
+// Função para esconder o toast
+function hideToast(): void {
+  const toast = document.getElementById("toast-notification");
+  if (!toast) return;
+
+  // Cancela o timeout existente se houver
+  if ((toast as any)._timeoutId) {
+    clearTimeout((toast as any)._timeoutId);
+  }
+
+  // Esconde o toast com animação
+  toast.classList.remove("opacity-100");
+  toast.classList.add("opacity-0", "translate-y-2", "pointer-events-none");
 }
