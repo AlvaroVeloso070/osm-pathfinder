@@ -19,17 +19,11 @@ import {
   TileLayer,
 } from "leaflet";
 import "leaflet-routing-machine";
-import {
-  Feature,
-  FeatureCollection,
-  GeoJsonProperties,
-  Geometry,
-  LineString,
-} from "geojson";
-import { GeoJSONInfo } from "./types";
+import {Feature, FeatureCollection, GeoJsonProperties, Geometry, LineString,} from "geojson";
+import {GeoJSONInfo} from "./types";
 import * as turf from "@turf/turf";
 import osmtogeojson from "osmtogeojson";
-import { Router } from "./router";
+import {Router} from "./router";
 
 export default class MapManipulator {
   private readonly defaultTileLayerProvider: string =
@@ -255,7 +249,7 @@ export default class MapManipulator {
       router: this.router,
       autoRoute: true,
       routeDragInterval: 100,
-      addWaypoints: false, // Disable default waypoint adding behavior for cleaner interface
+      addWaypoints: true, // Disable default waypoint adding behavior for cleaner interface
       routeWhileDragging: false, // Reduce visual noise during dragging
       showAlternatives: false, // Hide alternative routes for cleaner look
       fitSelectedRoutes: false, // Don't auto-fit bounds for more control
