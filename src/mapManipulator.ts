@@ -213,13 +213,13 @@ export default class MapManipulator {
             autoRoute: true,
             routeDragInterval: 100,
             // @ts-ignore
-            createMarker: function(i: number, waypoint: Routing.Waypoint, n: number) {
+            createMarker: (i: number, waypoint: Routing.Waypoint, n: number) => {
                 let markerClass = 'waypoint-marker';
                 if (i === 0) markerClass += ' start-marker';
                 else if (i === n - 1) markerClass += ' end-marker';
                 else markerClass += ' intermediate-marker';
 
-                return marker(waypoint.latLng, {
+                const newMarker = marker(waypoint.latLng, {
                     draggable: true,
                     icon: divIcon({
                         className: markerClass,
@@ -229,6 +229,19 @@ export default class MapManipulator {
                         popupAnchor: [1, -34]
                     })
                 });
+
+                // Adiciona evento de clique para remover o marcador
+                newMarker.on('click', (e) => {
+                    if (e.originalEvent.ctrlKey || e.originalEvent.metaKey) {
+                        // Remove apenas se Ctrl/Cmd estiver pressionado para evitar remoção acidental
+                        const waypoints = this.routingControl.getWaypoints();
+                        waypoints.splice(i, 1);
+                        this.routeWaypoints = waypoints.map(wp => wp.latLng).filter(Boolean);
+                        this.routingControl.setWaypoints(this.routeWaypoints);
+                    }
+                });
+
+                return newMarker;
             }
         }).addTo(this.map);
     }
