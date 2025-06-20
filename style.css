@@ -1,8 +1,26 @@
+@import "tailwindcss";
+
+/* Hide routing control panel for minimal design */
+.leaflet-routing-container {
+    display: none !important;
+}
+
+/* Hide leaflet attribution and controls for cleaner look */
+.leaflet-control-attribution {
+    display: none !important;
+}
+
+.leaflet-control-zoom {
+    display: none !important;
+}
+
+
+
+/* Make map background clean */
 #map {
-    height: 90vh;
+    height: 100%;
     width: 100%;
-    margin-top: 1.5rem;
-    background: #000;
+    background: #ffffff; /* Clean white background for better readability */
 }
 
 .waypoint-marker {
@@ -13,24 +31,24 @@
 .waypoint-marker .marker-text {
     position: relative;
     display: block;
-    width: 25px;
-    height: 25px;
+    width: 28px; /* Slightly larger for better visibility */
+    height: 28px;
     color: white;
     font-weight: bold;
-    font-size: 13px;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+    font-size: 14px; /* Larger font for better readability */
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8); /* Stronger shadow for better contrast */
 
     /* Forma de gota invertida usando CSS */
-    background-color: #3388ff;
+    background-color: #dc2626; /* Red color matching routes */
     border-radius: 50% 50% 50% 0;
     transform: rotate(-45deg);
-    border: 2px solid white;
+    border: 3px solid white; /* Thicker border for better visibility */
 
     /* Sombra projetada mais realista */
     box-shadow:
-            0 4px 8px rgba(0,0,0,0.25),
-            0 2px 4px rgba(0,0,0,0.3),
-            0 1px 2px rgba(0,0,0,0.4);
+            0 6px 12px rgba(0,0,0,0.3),
+            0 3px 6px rgba(0,0,0,0.4),
+            0 2px 4px rgba(0,0,0,0.5);
 }
 
 /* Rotacionar o número de volta para ficar na posição correta */
@@ -45,14 +63,22 @@
     align-items: center;
     justify-content: center;
     transform: rotate(45deg);
-    font-size: 13px;
+    font-size: 14px; /* Larger font to match marker size */
     font-weight: bold;
     line-height: 1;
     text-align: center;
 }
 
 .start-marker .marker-text {
-    background-color: #28a745; /* Verde para início */
+    background-color: #16a34a; /* Bright green for start */
+}
+
+.end-marker .marker-text {
+    background-color: #dc2626; /* Bright red for end */
+}
+
+.intermediate-marker .marker-text {
+    background-color: #2563eb; /* Blue for intermediate markers */
 }
 
 .end-marker .marker-text {
