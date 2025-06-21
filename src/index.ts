@@ -4,6 +4,7 @@ import MapManipulator from "./mapManipulator";
 const mapManipulator: MapManipulator = new MapManipulator();
 const fileInput = document.getElementById("file") as HTMLInputElement;
 const dropzone = document.getElementById("dropzone") as HTMLDivElement;
+const mapInfoButton = document.getElementById("map-info-button") as HTMLButtonElement;
 
 fileInput.addEventListener("change", handleFileUpload);
 
@@ -21,6 +22,20 @@ document
 document
   .getElementById("remove-markers")
   ?.addEventListener("click", removeAllMarkers);
+document
+  .getElementById("map-info-button")
+  ?.addEventListener("click", openMapInfoModal);
+
+// Modal close buttons
+document
+  .getElementById("close-modal-button")
+  ?.addEventListener("click", closeMapInfoModal);
+document
+  .getElementById("close-modal-btn")
+  ?.addEventListener("click", closeMapInfoModal);
+document
+  .getElementById("modal-overlay")
+  ?.addEventListener("click", closeMapInfoModal);
 
 // Speed panel event listeners
 document
@@ -247,6 +262,8 @@ function showLoadingState() {
 
 function resetDropzoneState() {
   showSuccessState();
+  enableMapInfoButton();
+  updateMapInfoModal();
 }
 
 function showSuccessState() {
@@ -383,5 +400,77 @@ function loadCurrentSpeedsIntoPanel(): void {
         input.value = speed.toString();
       }
     });
+  }
+}
+
+// Map info modal functions
+function openMapInfoModal(): void {
+  const modal = document.getElementById("map-info-modal") as HTMLElement;
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+
+    // Adiciona as animações para entrada do modal
+    setTimeout(() => {
+      const overlay = document.getElementById("modal-overlay");
+      const content = document.getElementById("modal-content");
+
+      if (overlay) overlay.classList.add("opacity-100");
+      if (content) {
+        content.classList.remove("opacity-0", "translate-y-8");
+        content.classList.add("opacity-100", "translate-y-0");
+      }
+    }, 10);
+  }
+}
+
+function closeMapInfoModal(): void {
+  const modal = document.getElementById("map-info-modal") as HTMLElement;
+  const overlay = document.getElementById("modal-overlay");
+  const content = document.getElementById("modal-content");
+
+  if (overlay) overlay.classList.remove("opacity-100");
+  if (content) {
+    content.classList.remove("opacity-100", "translate-y-0");
+    content.classList.add("opacity-0", "translate-y-8");
+  }
+
+  // Aguarda a animação terminar antes de esconder o modal
+  setTimeout(() => {
+    if (modal) {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+  }, 300);
+}
+
+function enableMapInfoButton(): void {
+  if (mapInfoButton) {
+    mapInfoButton.disabled = false;
+    mapInfoButton.classList.remove("opacity-50", "cursor-not-allowed");
+    mapInfoButton.classList.add("hover:bg-gray-500", "hover:border-gray-400");
+  }
+}
+
+function updateMapInfoModal(): void {
+  try {
+    // Obtém os elementos do modal onde as informações serão exibidas
+    const totalDistanceElement = document.getElementById("total-distance");
+    const totalVerticesElement = document.getElementById("total-vertices");
+    const totalEdgesElement = document.getElementById("total-edges");
+    const totalCoordinatesElement = document.getElementById("total-coordinates");
+
+    // Acessa as informações do geojson diretamente do mapManipulator
+    const geojsonInfo = mapManipulator.geojsonInfo;
+
+    if (geojsonInfo && totalDistanceElement && totalVerticesElement && totalEdgesElement && totalCoordinatesElement) {
+      // Formata a distância com duas casas decimais
+      totalDistanceElement.textContent = `${geojsonInfo.totalDistance.toFixed(2)} km`;
+      totalVerticesElement.textContent = geojsonInfo.totalNodes.toLocaleString();
+      totalEdgesElement.textContent = geojsonInfo.totalEdges.toLocaleString();
+      totalCoordinatesElement.textContent = geojsonInfo.coordinates.toLocaleString();
+    }
+  } catch (error) {
+    console.error("Erro ao atualizar informações do mapa:", error);
   }
 }

@@ -37,7 +37,7 @@ export default class MapManipulator {
   private tileLayer!: TileLayer;
   private clippedGeojson!: FeatureCollection<LineString, GeoJsonProperties>;
   private geojsonLayer!: GeoJSON<{}, Geometry>;
-  private geojsonInfo!: GeoJSONInfo;
+  public geojsonInfo!: GeoJSONInfo;
   private areaBorder!: Rectangle;
   private isGeoJSONLayerVisible: boolean = false;
   private router!: Router;
