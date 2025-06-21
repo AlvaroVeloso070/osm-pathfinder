@@ -7,6 +7,13 @@ export interface GeoJSONInfo {
     coordinates : number;
 }
 
+export interface RouteInfo {
+    totalDistance: number;
+    totalTime: number;
+    calculationTime: number;
+    totalNodes: number;
+}
+
 export interface HighwaySpeeds {
     motorway: number;
     trunk: number;

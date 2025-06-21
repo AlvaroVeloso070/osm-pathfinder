@@ -1,7 +1,7 @@
 import {latLng, Routing} from "leaflet";
 import "leaflet-routing-machine";
 import {Feature, FeatureCollection, GeoJsonProperties, LineString, Point,} from "geojson";
-import {HighwaySpeeds, Vertices} from "./types";
+import {HighwaySpeeds, RouteInfo, Vertices} from "./types";
 import PathFinder from "./pathFinder";
 import * as turf from "@turf/turf";
 
@@ -10,6 +10,7 @@ export class Router implements Routing.IRouter {
   private unknowns: Record<string, boolean> = {};
   public pathFinder: PathFinder<LineString>;
   public points: FeatureCollection<Point>;
+  public routeInfo !: RouteInfo;
 
   // Funções de utilidade
   private util = {
@@ -65,6 +66,8 @@ export class Router implements Routing.IRouter {
           return turf.point(this.pathFinder.graph.sourceCoordinates[nodeName]);
         })
     );
+
+    this.resetRouteInfo();
   }
 
   private weightFn = (a: any, b: any, props: any) => {
@@ -108,6 +111,8 @@ export class Router implements Routing.IRouter {
       callback: (error?: Routing.IError, routes?: Routing.IRoute[]) => void,
       context?: any
   ): Routing.IRouter {
+    this.resetRouteInfo();
+    const startTime = performance.now();
     try {
       // Função para encontrar múltiplos pontos próximos
       const findNearestPoints = (point: any, maxAttempts: number = 5): any[] => {
@@ -218,12 +223,17 @@ export class Router implements Routing.IRouter {
       // @ts-ignore
       const { selectedWaypoints: actualWaypoints, legs } = validResult;
 
-      const totalTime = legs.reduce(
+      this.routeInfo.totalTime = legs.reduce(
           (sum: number, l: any) => sum + (l ? l.weight : 0),
           0
       );
 
-      const totalDistance = legs.reduce((sum: number, l: any) => {
+      this.routeInfo.totalNodes = legs.reduce(
+          (sum: number, l: any) => sum + (l ? l.path.length : 0),
+          0
+      )
+
+      this.routeInfo.totalDistance = legs.reduce((sum: number, l: any) => {
         if (!l || !l.path) return sum;
 
         const legDistance = l.path.reduce(
@@ -258,25 +268,21 @@ export class Router implements Routing.IRouter {
         inputWaypoints: routeWaypoints,
         actualWaypoints: actualWaypoints,
         summary: {
-          totalDistance: Math.round(totalDistance),
-          totalTime: Math.round(totalTime),
+          totalDistance: Math.round(this.routeInfo.totalDistance),
+          totalTime: Math.round(this.routeInfo.totalTime),
         },
         coordinates: routeCoordinates,
         instructions: [
           {
             type: "Straight",
             text: "Siga até o destino",
-            distance: Math.round(totalDistance),
-            time: Math.round(totalTime),
+            distance: Math.round(this.routeInfo.totalDistance),
+            time: Math.round(this.routeInfo.totalTime),
             index: 0,
             direction: "Straight",
           },
         ],
       };
-
-      // Log para debug - mostra quais pontos foram selecionados
-      console.log("Pontos selecionados para roteamento:", actualWaypoints.map((wp : any) => wp.geometry.coordinates));
-
       // Chamar callback com sucesso
       setTimeout(() => {
         // @ts-ignore
@@ -291,6 +297,8 @@ export class Router implements Routing.IRouter {
       callback.call(context || this, routingError);
     }
 
+    this.routeInfo.calculationTime = performance.now() - startTime;
+
     return this;
   }
 
@@ -304,6 +312,15 @@ export class Router implements Routing.IRouter {
 
   updateHighwaySpeed(type: keyof HighwaySpeeds, speed: number): void {
     this.highwaySpeeds[type] = speed;
+  }
+
+  private resetRouteInfo() {
+    this.routeInfo = {
+      totalTime: 0,
+      totalDistance: 0,
+      calculationTime: 0,
+      totalNodes: 0
+    }
   }
 }
 

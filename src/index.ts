@@ -1,10 +1,15 @@
 import "../style.css";
 import MapManipulator from "./mapManipulator";
+import {RouteInfo} from "./types";
 
 const mapManipulator: MapManipulator = new MapManipulator();
 const fileInput = document.getElementById("file") as HTMLInputElement;
 const dropzone = document.getElementById("dropzone") as HTMLDivElement;
 const mapInfoButton = document.getElementById("map-info-button") as HTMLButtonElement;
+
+// Variáveis para o painel de informações da rota
+const routeInfoPanel = document.getElementById("route-info-panel") as HTMLElement;
+const closeRouteInfoButton = document.getElementById("close-route-info") as HTMLElement;
 
 fileInput.addEventListener("change", handleFileUpload);
 
@@ -126,10 +131,15 @@ function updateMarkersList(): void {
       markersList.appendChild(markerItem);
     });
   }
+
+  // Atualizar o painel de informações da rota se houver uma rota ativa
+  updateRouteInfoPanel();
 }
 
 function removeMarker(index: number): void {
   mapManipulator.removeWaypointAt(index);
+  // Atualizar o painel de informações da rota após remover um marcador
+  updateRouteInfoPanel();
 }
 
 function handleFileUpload(event: Event) {
@@ -165,6 +175,8 @@ function toggleGeoJsonLayer(): void {
 function removeAllMarkers(): void {
   mapManipulator.clearRoutingWaypoints();
   updateRemoveMarkersButtonState();
+  // Esconder o painel de informações da rota quando todos os marcadores são removidos
+  hideRouteInfoPanel();
 }
 
 function updateRemoveMarkersButtonState(): void {
@@ -473,4 +485,79 @@ function updateMapInfoModal(): void {
   } catch (error) {
     console.error("Erro ao atualizar informações do mapa:", error);
   }
+}
+
+// Funções para o painel de informações da rota
+function updateRouteInfoPanel(): void {
+  const waypoints = mapManipulator.getWaypoints();
+
+  if (waypoints.length >= 2) {
+    // Mostrar o painel de informações da rota apenas quando há pelo menos 2 waypoints (origem e destino)
+    showRouteInfoPanel();
+
+    // Obter as informações da rota do objeto de rota ativo
+    const routeInfo : RouteInfo = mapManipulator.router.routeInfo;
+
+    if (routeInfo) {
+      // Atualizar os elementos com as informações da rota
+      updateRouteInfo(routeInfo);
+    }
+  } else {
+    // Esconder o painel se não houver rota ativa
+    hideRouteInfoPanel();
+  }
+}
+
+function showRouteInfoPanel(): void {
+  if (routeInfoPanel) {
+    routeInfoPanel.classList.remove("opacity-0", "translate-y-4", "pointer-events-none");
+    routeInfoPanel.classList.add("opacity-100", "translate-y-0");
+  }
+}
+
+function hideRouteInfoPanel(): void {
+  if (routeInfoPanel) {
+    routeInfoPanel.classList.remove("opacity-100", "translate-y-0");
+    routeInfoPanel.classList.add("opacity-0", "translate-y-4", "pointer-events-none");
+  }
+}
+
+function updateRouteInfo(routeInfo: RouteInfo): void {
+  const distanceElement = document.getElementById("route-distance");
+  const timeElement = document.getElementById("route-time");
+  const calcTimeElement = document.getElementById("route-calc-time");
+  const nodesElement = document.getElementById("route-nodes");
+
+  if (distanceElement && timeElement && calcTimeElement && nodesElement && routeInfo) {
+    // Distância em km com 2 casas decimais
+    const distanceKm = (routeInfo.totalDistance / 1000).toFixed(2);
+    distanceElement.textContent = `${distanceKm} km`;
+
+    // Tempo formatado como hh:mm:ss
+    const totalSeconds = Math.round(routeInfo.totalTime);
+    timeElement.textContent = formatTime(totalSeconds);
+
+    // Tempo de cálculo em milissegundos
+    calcTimeElement.textContent = `${Math.round(routeInfo.calculationTime)} ms`;
+
+    // Número de nós percorridos
+    nodesElement.textContent = routeInfo.totalNodes.toLocaleString();
+  }
+}
+
+function formatTime(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+
+  return [
+    hours.toString().padStart(2, '0'),
+    minutes.toString().padStart(2, '0'),
+    remainingSeconds.toString().padStart(2, '0')
+  ].join(':');
+}
+
+// Evento para fechar o painel de informações da rota
+if (closeRouteInfoButton) {
+  closeRouteInfoButton.addEventListener("click", hideRouteInfoPanel);
 }

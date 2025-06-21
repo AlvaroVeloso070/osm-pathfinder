@@ -40,7 +40,7 @@ export default class MapManipulator {
   public geojsonInfo!: GeoJSONInfo;
   private areaBorder!: Rectangle;
   private isGeoJSONLayerVisible: boolean = false;
-  private router!: Router;
+  router!: Router;
   private routingControl!: Routing.Control;
   private routeWaypoints: LatLng[] = [];
   private markersChangeCallback?: () => void;
@@ -72,6 +72,8 @@ export default class MapManipulator {
       onComplete?.();
       return;
     }
+
+    this.clearRoutingWaypoints();
 
     const reader = new FileReader();
     reader.onload = () => {
