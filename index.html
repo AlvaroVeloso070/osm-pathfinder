@@ -39,6 +39,9 @@
             <button id="toggle-geojson" class="w-full px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white text-xs font-medium rounded border border-gray-500 hover:border-gray-400 transition-all duration-200">
                 <span id="toggle-geojson-text">Mostrar GeoJSON</span>
             </button>
+            <button id="map-info-button" disabled class="w-full px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white text-xs font-medium rounded border border-gray-500 hover:border-gray-400 transition-all duration-200 opacity-50 cursor-not-allowed">
+                Informações do Mapa
+            </button>
             <button id="remove-markers" class="w-full px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white text-xs font-medium rounded border border-gray-500 hover:border-gray-400 transition-all duration-200">
                 Remover Marcadores
             </button>
@@ -125,6 +128,63 @@
                 </div>
             </div>
         </div>
+
+        <!-- Floating Route Info Panel -->
+        <div id="route-info-panel" class="absolute bottom-4 right-4 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-w-xs transition-all duration-300 ease-in-out z-[1000] opacity-0 translate-y-4 pointer-events-none">
+            <div class="p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-gray-200 text-xs font-medium">Informações da rota</h3>
+                    <button id="close-route-info" class="text-gray-400 hover:text-gray-300 transition-colors duration-200">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 001 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+                        </svg>
+                        <div>
+                            <div class="text-gray-400">Distância percorrida</div>
+                            <div id="route-distance" class="text-white font-medium">0 km</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                            <div class="text-gray-400">Tempo estimado do trajeto</div>
+                            <div id="route-time" class="text-white font-medium">00:00:00</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <div>
+                            <div class="text-gray-400">Rota calculada em</div>
+                            <div id="route-calc-time" class="text-white font-medium">0 ms</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <div>
+                            <div class="text-gray-400">Nós percorridos</div>
+                            <div id="route-nodes" class="text-white font-medium">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Toast de notificação -->
@@ -140,6 +200,76 @@
         </button>
     </div>
 
+    <!-- Map Info Modal -->
+    <div id="map-info-modal" class="fixed inset-0 z-[3000] items-center justify-center hidden">
+        <!-- Overlay -->
+        <div id="modal-overlay" class="absolute inset-0 backdrop-blur-sm opacity-0 transition-opacity duration-300"></div>
+
+        <!-- Modal Content -->
+        <div id="modal-content" class="relative bg-gray-700 border border-gray-600 rounded-lg shadow-xl w-full max-w-md mx-auto mt-24 transform translate-y-8 opacity-0 transition-all duration-300 ease-out">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-600">
+                <h3 class="text-gray-200 text-base font-medium">Informações do mapa carregado</h3>
+                <button id="close-modal-button" class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 space-y-4">
+                <!-- Info items -->
+                <div class="flex items-center space-x-3 p-3 bg-gray-600/50 rounded-lg">
+                    <svg class="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    <div class="flex-1">
+                        <div class="text-xs text-gray-400 font-medium">Distância viária total</div>
+                        <div id="total-distance" class="text-sm text-white font-semibold">0 km</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3 p-3 bg-gray-600/50 rounded-lg">
+                    <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                    </svg>
+                    <div class="flex-1">
+                        <div class="text-xs text-gray-400 font-medium">Total de vértices</div>
+                        <div id="total-vertices" class="text-sm text-white font-semibold">0</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3 p-3 bg-gray-600/50 rounded-lg">
+                    <svg class="w-5 h-5 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <div class="flex-1">
+                        <div class="text-xs text-gray-400 font-medium">Total de arestas</div>
+                        <div id="total-edges" class="text-sm text-white font-semibold">0</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3 p-3 bg-gray-600/50 rounded-lg">
+                    <svg class="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div class="flex-1">
+                        <div class="text-xs text-gray-400 font-medium">Coordenadas</div>
+                        <div id="total-coordinates" class="text-sm text-white font-semibold">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-600 flex justify-end">
+                <button id="close-modal-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white text-xs font-medium rounded border border-gray-500 hover:border-gray-400 transition-all duration-200">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script src="./main.js"></script>
 </body>
