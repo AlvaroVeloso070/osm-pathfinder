@@ -7,9 +7,9 @@ import * as turf from "@turf/turf";
 
 export class Router implements Routing.IRouter {
   private highwaySpeeds: HighwaySpeeds;
-  private pathFinder: PathFinder<LineString>;
   private unknowns: Record<string, boolean> = {};
-  private points: FeatureCollection<Point>;
+  public pathFinder: PathFinder<LineString>;
+  public points: FeatureCollection<Point>;
 
   // Funções de utilidade
   private util = {

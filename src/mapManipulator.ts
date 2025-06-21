@@ -20,7 +20,7 @@ import {
 } from "leaflet";
 import "leaflet-routing-machine";
 import {Feature, FeatureCollection, GeoJsonProperties, Geometry, LineString,} from "geojson";
-import {GeoJSONInfo} from "./types";
+import {GeoJSONInfo, Vertices} from "./types";
 import * as turf from "@turf/turf";
 import osmtogeojson from "osmtogeojson";
 import {Router} from "./router";
@@ -164,6 +164,25 @@ export default class MapManipulator {
     this.addRouting();
     this.setupMapClickHandler(bounds);
     this.map.fitBounds(bounds);
+
+    let totalDistance : number = this.clippedGeojson.features.reduce((total : number, feature : Feature<LineString>) => {
+      return total + turf.length(feature, {units: "kilometers"});
+    }, 0);
+
+    let vertices : Vertices = this.router.pathFinder.graph.compactedVertices;
+    let nodeNames = Object.keys(vertices);
+    let totalNodes : number = nodeNames.length;
+    let totalEdges : number = nodeNames.reduce((total : number, nodeName : string)=> {
+      return total + Object.keys(vertices[nodeName]).length;
+    }, 0);
+    let coordinates : number = this.router.points.features.length;
+
+    this.geojsonInfo = {
+      totalDistance: totalDistance,
+      totalNodes: totalNodes,
+      totalEdges: totalEdges,
+      coordinates: coordinates
+    }
   }
 
   private setupMapClickHandler(bounds: LatLngBounds) {

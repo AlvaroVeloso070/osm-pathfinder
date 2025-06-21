@@ -4,6 +4,7 @@ export interface GeoJSONInfo {
     totalDistance: number;
     totalNodes: number;
     totalEdges: number;
+    coordinates : number;
 }
 
 export interface HighwaySpeeds {
