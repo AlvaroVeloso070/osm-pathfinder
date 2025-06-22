@@ -2,9 +2,11 @@
 
 Biblioteca TypeScript para cálculo de rotas em dados geoespaciais do OpenStreetMap (OSM) com integração ao Leaflet.
 
+### Demonstração online: [OSM PathFinder](https://alvaroveloso070.github.io/osm-pathfinder/) 
+
 ## Recursos Principais
 
-- **Importação Flexível**: suporte a GeoJSON, OSM XML e formatos TXT.
+- **Importação de arquivos**: suporte a arquivos OSM XML (OpenStreetMap).
 - **Compactação de Grafo**: remove nós de grau-2 para otimizar a busca.
 - **Pesquisa de Caminho**: algoritmo de Dijkstra para encontrar o menor caminho.
 - **Integração Leaflet**: adaptador `Router` para uso com `leaflet-routing-machine`.
@@ -13,54 +15,19 @@ Biblioteca TypeScript para cálculo de rotas em dados geoespaciais do OpenStreet
 
 ## Instalação
 
+
 ```bash
 # Usando npm
-npm install osm-pathfinder geojson @turf/turf leaflet leaflet-routing-machine tinyqueue osmtogeojson
+npm install
 
-# Usando yarn
-yarn add osm-pathfinder geojson @turf/turf leaflet leaflet-routing-machine tinyqueue osmtogeojson
-```
+npm run prod
 
-## Exemplo de Uso
-
-```ts
-import L from 'leaflet';
-import 'leaflet-routing-machine';
-import PathFinder, { HighwaySpeeds } from 'osm-pathfinder';
-
-// Definir velocidades por tipo de via
-const speeds: HighwaySpeeds = {
-  motorway: 100,
-  trunk: 80,
-  primary: 60,
-  secondary: 50,
-  tertiary: 40,
-  unclassified: 30,
-  residential: 30,
-  service: 20,
-  living_street: 10,
-};
-
-// Converter OSM XML para GeoJSON (opcional)
-import osmtogeojson from 'osmtogeojson';
-const geojson = osmtogeojson(osmXmlDocument);
-
-// Instanciar PathFinder
-const pf = new PathFinder(geojson, { speeds, tolerance: 1e-5, compact: true });
-
-// Configurar mapa Leaflet
-const map = L.map('map').setView([LAT, LNG], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-// Adicionar controle de rota
-import { Router } from 'osm-pathfinder';
-const router = new Router(speeds, geojson);
-L.Routing.control({ router }).addTo(map);
+# Abrir arquivo index.html no navegador.
 ```
 
 ## Documentação
 
-A documentação completa está disponível em [docs/OSM_Pathfinder_Documentation.md](./docs/OSM_Pathfinder_Documentation.md).
+A documentação completa está disponível em [Documentação](./docs/documentation.md).
 
 ## Contribuição
 
@@ -72,7 +39,7 @@ A documentação completa está disponível em [docs/OSM_Pathfinder_Documentatio
 
 ## Autores
 
-- Álvaro Velloso Lisboa – Lógica e processamento de rotas  
+- Álvaro Veloso Lisboa – Lógica e processamento de rotas  
 - Thiago Augusto Telho Abreu – Interface gráfica e experiência do usuário  
 - Claudio Cristiano Louza Filho – Documentação geral e revisão técnica  
 

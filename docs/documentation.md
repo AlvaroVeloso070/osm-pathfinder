@@ -2,6 +2,8 @@
 
 > Biblioteca TypeScript para cálculo de rotas em dados geoespaciais do OpenStreetMap, com integração simples ao Leaflet.
 
+### Demonstração online: [OSM PathFinder](https://alvaroveloso070.github.io/osm-pathfinder/)
+
 ---
 
 ## Autores
@@ -50,12 +52,13 @@ Ideal para aplicações web de roteirização, GIS e simulações de tráfego.
 
 ## Principais Funcionalidades
 
-- **Importação Flexível**: aceita GeoJSON, OSM XML e formatos TXT customizados.  
+- **Importação de arquivos**: suporte a aruquivos OSM XML (OpenStreetMap) .
 - **Ajuste de Precisão**: `tolerance` configurável para agrupar vértices próximos.  
 - **Compactação de Grafo**: remove nós de grau-2 automaticamente.  
 - **Personalização de Pesos**: funções definíveis para velocidade e custo de cada via.  
 - **API Intuitiva**: métodos `findPath` e `route` para integração imediata.  
-- **Estatísticas**: fornece tempo de cálculo, distância total e número de vértices explorados.  
+- **Estatísticas do mapa carregado:**: fornece informações como distancia viária todal, quantidade de vérticies, quantidade de arestas e quantidade de coordenadas mapeadas.  
+- **Estatísticas de rota:**: fornece tempo de cálculo, distância total e número de vértices explorados.  
 
 ---
 
@@ -64,7 +67,7 @@ Ideal para aplicações web de roteirização, GIS e simulações de tráfego.
 ```mermaid
 flowchart TB
   subgraph ETL
-    A["Input GeoJSON / OSM XML"] --> B[Preprocessor]
+    A["Input OSM XML"] --> B[Preprocessor]
     B --> C[Topology]
     C --> D[Compactor]
   end
@@ -89,24 +92,23 @@ flowchart TB
 
 ## Instalação
 
+> Necessário Node versao 20 ou superior.
+
 ```bash
 # Usando npm
-npm install osm-pathfinder geojson @turf/turf leaflet leaflet-routing-machine tinyqueue osmtogeojson
+npm install
 
-# Usando yarn
-yarn add osm-pathfinder geojson @turf/turf leaflet leaflet-routing-machine tinyqueue osmtogeojson
+npm run prod
+
+# Abrir arquivo index.html no navegador.
 ```
-
-Suporta Node.js >= 14 e navegadores modernos.
-
----
 
 ## Configuração
 
-Importe e configure velocidades médias por tipo de via:
+É possível configurar a velocidade de cada via, considerada no calculo do trajeto.
 
 ```ts
-import { HighwaySpeeds } from 'osm-pathfinder';
+// Na classe router.ts
 
 const speeds: HighwaySpeeds = {
   motorway: 100,
@@ -125,14 +127,14 @@ Opções adicionais em `PathFinderOptions`:
 
 - `tolerance` (número): precisão de arredondamento de coordenadas.  
 - `compact` (boolean): ativa/desativa compactação.  
-- `weightFn(edgeData) => number`: define custo de cada aresta.  
+- `weightFn(edgeData) => number`: função que define o custo de cada aresta.  
 - `edgeDataSeed` e `edgeDataReducer`: para agregar propriedades customizadas.  
 
 ---
 
 ## Guia Rápido de Uso
 
-1. **Carregue o GeoJSON** (ou XML convertido com `osmtogeojson`).  
+1. **Carregue o arquivo OSM XML** (Arquivo .osm do OpenStreetMap).  
 2. **Instancie** `PathFinder`:
    ```ts
    import PathFinder from 'osm-pathfinder';
@@ -298,7 +300,8 @@ import PathFinder, { HighwaySpeeds } from 'osm-pathfinder';
    ```bash
    git clone https://github.com/seu-usuario/osm-pathfinder.git
    cd osm-pathfinder
-   yarn install
+   npm install
+   npm run dev
    ```
 2. **Linters e Formatação**: siga ESLint e Prettier.  
 3. **Testes Unitários**: adicione casos para `preprocessor`, `compactor` e `dijkstra`.  
