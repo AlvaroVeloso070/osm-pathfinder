@@ -6,7 +6,7 @@
 
 ## Autores
 
-- Álvaro Velloso – Lógica e processamento de rotas  
+- Álvaro Veloso Lisboa – Lógica e processamento de rotas  
 - Thiago Augusto Telho Abreu – Interface gráfica e experiência do usuário  
 - Claudio Cristiano Louza Filho – Documentação geral e revisão técnica  
 
