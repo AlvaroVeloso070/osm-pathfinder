@@ -78,4 +78,4 @@ A documentação completa está disponível em [docs/OSM_Pathfinder_Documentatio
 
 ## Licença
 
-Este projeto está licenciado sob a MIT License. Veja o arquivo [LICENSE](./docs/LICENSE) para detalhes.
+Este projeto está licenciado sob a MIT License. Veja o arquivo [LICENSE](./docs/LICENSE.md) para detalhes.
